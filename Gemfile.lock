@@ -1,0 +1,18 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    aws-sdk (1.13.0)
+      json (~> 1.4)
+      nokogiri (< 1.6.0)
+      uuidtools (~> 2.1)
+    json (1.8.0)
+    nokogiri (1.5.10)
+    rake (10.1.0)
+    uuidtools (2.1.4)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  aws-sdk (~> 1.0)
+  rake (= 10.1.0)

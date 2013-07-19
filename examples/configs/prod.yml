@@ -1,0 +1,16 @@
+stacks:
+  - name: VPCProd
+    template: vpc.json
+    parameters: []
+
+  - name: PublicSubnetsProd
+    template: public-subnets.json
+    parameters:
+    - param_name: InternetGateway
+      value:
+        stack: VPC
+        output: InternetGateway
+    - param_name: VpcId
+      value:
+        stack: VPC
+        output: VpcId

@@ -121,6 +121,9 @@ if __FILE__ == $0
         opts.on('-c', '--config PATH', String, "Path to config file") do |path|
           options[:config] = path
         end
+        opts.on('-t', '--templates PATH', String, "Path to templates root folder") do |path|
+          options[:templates] = path
+        end
       end.parse!
 
       config = YAML.load_file(options[:config])
@@ -129,9 +132,10 @@ if __FILE__ == $0
       config['stacks'].each do |stack_config|
         parameters = CloudFormationStack.build_parameters(stacks, stack_config['parameters'])
         capabilities = stack_config['capabilities'] || {}
+        template_path = File.join(options[:templates], stack_config['template'])
         stack = CloudFormationStack.new(cfm_client,
                                         stack_config['name'],
-                                        stack_config['template'],
+                                        template_path,
                                         parameters,
                                         capabilities)
         stack.get_or_create
