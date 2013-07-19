@@ -1,4 +1,4 @@
 sandwich
 ========
 
-Sandwich helps you slam together 
+Sandwich helps you put together your CloudFormation stacks.
