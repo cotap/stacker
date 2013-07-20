@@ -1,0 +1,16 @@
+about_resource: .
+name: Sandwich tool
+version: 0.1
+
+owner: CoTap Inc.
+author: Martin Cozzi
+
+readme_file: README.rst
+vcs_tool: git
+vcs_repository: https://github.com/CoTap/sandwich
+
+description: Sandwich helps you put together your CloudFormation stacks.
+
+license_text_file: LICENSE
+license_spdx: MIT
+copyright: Copyright (c) 2013 CoTap, Inc.
