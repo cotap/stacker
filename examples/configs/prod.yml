@@ -8,9 +8,9 @@ stacks:
     parameters:
     - param_name: InternetGateway
       value:
-        stack: VPC
+        stack: VPCProd
         output: InternetGateway
     - param_name: VpcId
       value:
-        stack: VPC
+        stack: VPCProd
         output: VpcId
