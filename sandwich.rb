@@ -140,6 +140,7 @@ if __FILE__ == $0
                                         capabilities)
         stack.get_or_create
         stacks[stack_config['name']] = stack
+        sleep(3)
       end
   rescue Interrupt => e
     puts 'Ctrl+C was pressed. Exiting now...'
