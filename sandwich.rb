@@ -82,7 +82,7 @@ class CloudFormationStack
   end
 
   def get_outputs
-    if self.get_status == "CREATE_COMPLETE" && @outputs.nil?
+    if (['CREATE_COMPLETE', 'UPDATE_COMPLETE'].include? self.get_status) && @outputs.nil?
       logger.info("Getting current outputs for #{@name}")
       @outputs = {}
       @stack.outputs.each do |output|
@@ -140,7 +140,7 @@ if __FILE__ == $0
                                         capabilities)
         stack.get_or_create
         stacks[stack_config['name']] = stack
-        sleep(3)
+        sleep(1)
       end
   rescue Interrupt => e
     puts 'Ctrl+C was pressed. Exiting now...'
