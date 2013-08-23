@@ -82,7 +82,7 @@ class CloudFormationStack
   end
 
   def get_outputs
-    if (['CREATE_COMPLETE', 'UPDATE_COMPLETE'].include? self.get_status) && @outputs.nil?
+    if (['CREATE_COMPLETE', 'UPDATE_COMPLETE', 'UPDATE_ROLLBACK_COMPLETE'].include? self.get_status) && @outputs.nil?
       logger.info("Getting current outputs for #{@name}")
       @outputs = {}
       @stack.outputs.each do |output|
