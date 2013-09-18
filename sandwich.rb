@@ -114,7 +114,6 @@ end
 
 if __FILE__ == $0
   begin
-      cfm_client = AWS::CloudFormation.new
       options = {}
       OptionParser.new do |opts|
         opts.banner = "Usage: build_stacks.rb [options]"
@@ -128,6 +127,9 @@ if __FILE__ == $0
 
       config = YAML.load_file(options[:config])
       stacks = {}
+
+      AWS.config(:region =>  config['region'])
+      cfm_client = AWS::CloudFormation.new
 
       config['stacks'].each do |stack_config|
         parameters = CloudFormationStack.build_parameters(stacks, stack_config['parameters'])
