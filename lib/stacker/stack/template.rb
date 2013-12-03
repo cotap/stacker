@@ -12,6 +12,18 @@ module Stacker
 
       extend Memoist
 
+      def self.format object
+        formatted = JSON.pretty_generate object
+
+        # put empty arrays on a single line
+        formatted.gsub! /: \[\s*\]/m, ': []'
+
+        # put { "Ref": ... } on a single line
+        formatted.gsub! /\{\s+\"Ref\"\:\s+(?<ref>\"[^\"]+\")\s+\}/m, '{ "Ref": \\k<ref> }'
+
+        formatted + "\n"
+      end
+
       def exists?
         File.exists? path
       end
@@ -44,7 +56,7 @@ module Stacker
       memoize :diff
 
       def write value = local
-        File.write path, JSON.pretty_generate(value) + "\n"
+        File.write path, self.class.format(value)
       end
 
       def dump
