@@ -10,6 +10,8 @@ module Stacker
 
     class PrettyLogger < SimpleDelegator
       def initialize logger
+        super
+
         old_formatter = logger.formatter
 
         logger.formatter =  proc do |level, time, prog, msg|
@@ -25,8 +27,6 @@ module Stacker
 
           old_formatter.call level, time, prog, msg
         end
-
-        super logger
       end
 
       %w[ debug info warn fatal ].each do |level|
