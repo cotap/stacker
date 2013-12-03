@@ -54,7 +54,10 @@ module Stacker
       private
 
       def path
-        @path ||= "#{stack.region.templates_path}/#{stack.name}.json"
+        @path ||= File.join(
+          stack.region.templates_path,
+          "#{stack.options.fetch('template_name', stack.name)}.json"
+        )
       end
 
     end

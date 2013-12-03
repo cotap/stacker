@@ -9,7 +9,9 @@ module Stacker
     def initialize(name, defaults, stacks, templates_path)
       @name = name
       @defaults = defaults
-      @stacks = stacks.map { |name, opts| Stack.new self, name, opts || {} }
+      @stacks = stacks.map do |options|
+        Stack.new self, options.fetch('name'), options
+      end
       @templates_path = templates_path
     end
 

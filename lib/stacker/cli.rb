@@ -121,8 +121,8 @@ module Stacker
           File.join working_path, 'regions', "#{options['region']}.yml"
         )
 
-        defaults = config.fetch 'Defaults', {}
-        stacks = config.fetch 'Stacks', {}
+        defaults = config.fetch 'defaults', {}
+        stacks = config.fetch 'stacks', {}
 
         Region.new options['region'], defaults, stacks, templates_path
       end
@@ -153,7 +153,7 @@ module Stacker
     end
 
     def templates_path
-      File.join working_path, 'stacks'
+      File.join working_path, 'templates'
     end
 
     def working_path
