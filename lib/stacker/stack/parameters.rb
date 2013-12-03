@@ -9,35 +9,54 @@ module Stacker
 
       extend Memoist
 
-      def available
-        @available ||= stack.region.defaults.fetch('Parameters', {}).merge(
-          stack.options.fetch('Parameters', {})
-        )
+      # everything required by the template
+      def template_definitions
+        stack.template.local.fetch 'Parameters', {}
       end
 
-      def required
-        @required ||= stack.template.local.fetch 'Parameters', {}
+      def region_defaults
+        stack.region.defaults.fetch 'parameters', {}
       end
 
+      # template defaults merged with region and stack-specific overrides
       def local
-        @local ||= available.slice *required.keys
+        region_defaults = stack.region.defaults.fetch 'parameters', {}
+
+        template_defaults = Hash[
+          template_definitions.select { |_, opts|
+            opts.key?('Default')
+          }.map { |name, opts|
+            [name, opts['Default']]
+          }
+        ]
+
+        available = region_defaults.merge(
+          template_defaults.merge(
+            stack.options.fetch 'parameters', {}
+          )
+        )
+
+        available.slice *template_definitions.keys
       end
 
       def missing
-        @missing ||= required.keys - local.keys
+        template_definitions.keys - local.keys
       end
 
       def remote
-        @remote ||= client.parameters
+        client.parameters
       end
+      memoize :remote
 
       def resolved
-        @resolved ||= resolver.resolved
+        resolver.resolved
       end
+      memoize :resolved
 
       def resolver
-        @resolver ||= Resolver.new stack.region, local
+        Resolver.new stack.region, local
       end
+      memoize :resolver
 
       def diff *args
         Differ.yaml_diff Hash[resolved.sort], Hash[remote.sort], *args
