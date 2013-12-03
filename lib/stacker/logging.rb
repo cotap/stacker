@@ -20,6 +20,7 @@ module Stacker
                     when 'FATAL' then :red
                     when 'WARN'  then :yellow
                     when 'INFO'  then :blue
+                    when 'DEBUG' then '333333'
                     else              :default
                     end
             msg = msg.color(color)
