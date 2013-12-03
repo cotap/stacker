@@ -12,18 +12,6 @@ module Stacker
 
       extend Memoist
 
-      def self.format object
-        formatted = JSON.pretty_generate object
-
-        # put empty arrays on a single line
-        formatted.gsub! /: \[\s*\]/m, ': []'
-
-        # put { "Ref": ... } on a single line
-        formatted.gsub! /\{\s+\"Ref\"\:\s+(?<ref>\"[^\"]+\")\s+\}/m, '{ "Ref": \\k<ref> }'
-
-        formatted + "\n"
-      end
-
       def exists?
         File.exists? path
       end
@@ -56,7 +44,7 @@ module Stacker
       memoize :diff
 
       def write value = local
-        File.write path, self.class.format(value)
+        File.write path, JSONFormatter.format(value)
       end
 
       def dump
@@ -70,6 +58,27 @@ module Stacker
           stack.region.templates_path,
           "#{stack.options.fetch('template_name', stack.name)}.json"
         )
+      end
+
+      class JSONFormatter
+        STR = '\"[^\"]+\"'
+
+        def self.format object
+          formatted = JSON.pretty_generate object
+
+          # put empty arrays on a single line
+          formatted.gsub! /: \[\s*\]/m, ': []'
+
+          # put { "Ref": ... } on a single line
+          formatted.gsub! /\{\s+\"Ref\"\:\s+(?<ref>#{STR})\s+\}/m,
+            '{ "Ref": \\k<ref> }'
+
+          # put { "Fn::GetAtt": ... } on a single line
+          formatted.gsub! /\{\s+\"Fn::GetAtt\"\: \[\s+(?<key>#{STR}),\s+(?<val>#{STR})\s+\]\s+\}/m,
+            '{ "Fn::GetAtt": [ \\k<key>, \\k<val> ] }'
+
+          formatted + "\n"
+        end
       end
 
     end
