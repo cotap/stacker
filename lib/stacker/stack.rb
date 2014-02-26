@@ -117,7 +117,7 @@ module Stacker
     private
 
     def wait_while_status wait_status
-      while client.status == wait_status
+      while flush_cache(:status) && status == wait_status
         Stacker.logger.debug "#{name} Status => #{status}"
         sleep 5
       end
