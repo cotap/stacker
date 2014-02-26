@@ -5,7 +5,7 @@ module Stacker
     class Capabilities < Component
 
       def local
-        @local ||= stack.options.fetch 'Capabilities', {}
+        @local ||= Array.wrap(stack.options.fetch 'capabilities', [])
       end
 
       def remote
