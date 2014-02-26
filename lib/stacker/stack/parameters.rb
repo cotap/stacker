@@ -30,13 +30,13 @@ module Stacker
           }
         ]
 
-        available = region_defaults.merge(
-          template_defaults.merge(
+        available = template_defaults.merge(
+          region_defaults.merge(
             stack.options.fetch 'parameters', {}
           )
         )
 
-        available.slice *template_definitions.keys
+        available.slice(*template_definitions.keys)
       end
 
       def missing
