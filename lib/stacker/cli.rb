@@ -130,7 +130,7 @@ module Stacker
 
     def resolve stack
       return {} if stack.parameters.resolver.dependencies.none?
-      Stacker.logger.debug 'Resolving dependancies...'
+      Stacker.logger.debug 'Resolving dependencies...'
       stack.parameters.resolved
     end
 
