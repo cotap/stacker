@@ -55,8 +55,14 @@ defaults:
 
 stacks:
   - name: VPC
-  - name: PrivateSubnets
+
   - name: PublicSubnets
+    parameters:
+      InternetGateway:
+        Stack: VPC 
+        Output: InternetGateway
+
+  - name: PrivateSubnets
 
   - name: API
     # gives AWS permissions to create IAM resources
