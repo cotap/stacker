@@ -42,16 +42,16 @@ acme-cloudformation
 ### Region File
 
 ```yaml
+---
 defaults:
   parameters:
     AmiImageId: 'ami-1234abcd'
 
     CIDRBlock: '10.0'
 
-    # depend on an output from another stack
     VPCId:
       Stack: VPC
-      Output: VPCId
+      Output: VPCId # depend on an output from another stack
 
 stacks:
   - name: VPC
@@ -59,14 +59,13 @@ stacks:
   - name: PublicSubnets
     parameters:
       InternetGateway:
-        Stack: VPC 
+        Stack: VPC
         Output: InternetGateway
 
   - name: PrivateSubnets
 
   - name: API
-    # gives AWS permissions to create IAM resources
-    capabilities: 'CAPABILITY_IAM'
+    capabilities: 'CAPABILITY_IAM' # give permission to create IAM resources
     parameters:
       ChefRunList: 'role[api]'
 
@@ -77,8 +76,7 @@ stacks:
       SubnetId:
         Stack: PublicSubnets
         Output: SubnetIdAZ1
-    # use a template with a different name
-    template_name: Database
+    template_name: Database # use template with a different name
 
   - name: DBSlave
     parameters:
