@@ -43,8 +43,6 @@ acme-cloudformation
 
 ```yaml
 defaults:
-  capabilities:
-    - CAPABILITY_IAM
   parameters:
     AmiImageId: 'ami-1234abcd'
 
@@ -56,7 +54,13 @@ defaults:
       Output: VPCId
 
 stacks:
+  - name: VPC
+  - name: PrivateSubnets
+  - name: PublicSubnets
+
   - name: API
+    # gives AWS permissions to create IAM resources
+    capabilities: 'CAPABILITY_IAM'
     parameters:
       ChefRunList: 'role[api]'
 
@@ -75,9 +79,6 @@ stacks:
       ChefRunList: 'role[db-slave]'
     template_name: Database
 
-  - name: PrivateSubnets
-  - name: PublicSubnets
-  - name: VPC
 ```
 
 ## Authors
