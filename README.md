@@ -1,7 +1,7 @@
 stacker
 =======
 
-Easily assemble CloudFormation stacks.
+Easily assemble CloudFormation stacks with interdependencies.
 
 ## Usage
 
@@ -20,6 +20,64 @@ Commands:
 Options:
   [--path=project path]       # Default: STACKER_PATH or './'
   [--region=AWS region name]  # Default: STACKER_REGION or 'us-east-1'
+```
+
+## Examples
+
+### Project Structure
+
+```
+acme-cloudformation
+|-- regions
+|    |-- us-east-1.yml
+|    `-- us-west-1.yml
+`-- templates
+     |-- API.json
+     |-- Database.json
+     |-- PrivateSubnets.json
+     |-- PublicSubnets.json
+     `-- VPC.json
+```
+
+### Region File
+
+```yaml
+defaults:
+  capabilities:
+    - CAPABILITY_IAM
+  parameters:
+    AmiImageId: 'ami-1234abcd'
+
+    CIDRBlock: '10.0'
+
+    # depend on an output from another stack
+    VPCId:
+      Stack: VPC
+      Output: VPCId
+
+stacks:
+  - name: API
+    parameters:
+      ChefRunList: 'role[api]'
+
+  - name: DBMaster
+    parameters:
+      ChefRunList: 'role[db-master]'
+      InstanceImageId: 'ami-d3adb33f'
+      SubnetId:
+        Stack: PublicSubnets
+        Output: SubnetIdAZ1
+    # use a template with a different name
+    template_name: Database
+
+  - name: DBSlave
+    parameters:
+      ChefRunList: 'role[db-slave]'
+    template_name: Database
+
+  - name: PrivateSubnets
+  - name: PublicSubnets
+  - name: VPC
 ```
 
 ## Authors
