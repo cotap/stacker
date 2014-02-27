@@ -9,16 +9,21 @@ module Stacker
     default_path = ENV['STACKER_PATH'] || '.'
     default_region = ENV['STACKER_REGION'] || 'us-east-1'
 
-    method_option :path, default: default_path, banner: 'project path'
+    method_option :path,   default: default_path,   banner: 'project path'
     method_option :region, default: default_region, banner: 'AWS region name'
     def initialize(*args); super(*args) end
 
-    desc "list", "list stacks"
+    desc "init [PATH]", "Create stacker project directories"
+    def init path = nil
+      init_project path || options['path']
+    end
+
+    desc "list", "List stacks"
     def list
       Stacker.logger.inspect region.stacks.map(&:name)
     end
 
-    desc "show STACK_NAME", "show details of a stack"
+    desc "show STACK_NAME", "Show details of a stack"
     def show stack_name
       with_one_or_all stack_name do |stack|
         Stacker.logger.inspect(
@@ -32,14 +37,14 @@ module Stacker
       end
     end
 
-    desc "status [STACK_NAME]", "show stack status"
+    desc "status [STACK_NAME]", "Show stack status"
     def status stack_name = nil
       with_one_or_all(stack_name) do |stack|
         Stacker.logger.debug stack.status.indent
       end
     end
 
-    desc "diff [STACK_NAME]", "show outstanding stack differences"
+    desc "diff [STACK_NAME]", "Show outstanding stack differences"
     def diff stack_name = nil
       with_one_or_all(stack_name) do |stack|
         resolve stack
@@ -47,7 +52,7 @@ module Stacker
       end
     end
 
-    desc "update [STACK_NAME]", "create or update stack"
+    desc "update [STACK_NAME]", "Create or update stack"
     def update stack_name = nil
       with_one_or_all(stack_name) do |stack|
         resolve stack
@@ -70,7 +75,7 @@ module Stacker
       end
     end
 
-    desc "dump [STACK_NAME]", "download stack template"
+    desc "dump [STACK_NAME]", "Download stack template"
     def dump stack_name = nil
       with_one_or_all(stack_name) do |stack|
         if stack.exists?
@@ -89,7 +94,7 @@ module Stacker
       end
     end
 
-    desc "fmt [STACK_NAME]", "re-format template"
+    desc "fmt [STACK_NAME]", "Re-format template JSON"
     def fmt stack_name = nil
       with_one_or_all(stack_name) do |stack|
         if stack.template.exists?
@@ -102,6 +107,30 @@ module Stacker
     end
 
     private
+
+    def init_project path
+      project_path = File.expand_path path
+
+      %w[ regions templates ].each do |dir|
+        directory_path = File.join project_path, dir
+        unless Dir.exists? directory_path
+          Stacker.logger.debug "Creating directory at #{directory_path}"
+          FileUtils.mkdir_p directory_path
+        end
+      end
+
+      region_path = File.join project_path, 'regions', 'us-east-1.yml'
+      unless File.exists? region_path
+        Stacker.logger.debug "Creating region file at #{region_path}"
+        File.open(region_path, 'w+') { |f| f.print <<-YAML }
+defaults:
+  parameters:
+    CidrBlock: '10.0'
+stacks:
+  - name: VPC
+YAML
+      end
+    end
 
     def full_diff stack
       templ_diff = stack.template.diff :color

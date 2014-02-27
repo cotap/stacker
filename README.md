@@ -8,18 +8,19 @@ Easily assemble CloudFormation stacks with interdependencies.
 ```sh
 $ stacker -h
 Commands:
-  stacker diff [STACK_NAME]   # show outstanding stack differences
-  stacker dump [STACK_NAME]   # download stack template
-  stacker fmt [STACK_NAME]    # re-format template
-  stacker help [COMMAND]      # Describe available commands or one specific command
-  stacker list                # list stacks
-  stacker show STACK_NAME     # show details of a stack
-  stacker status [STACK_NAME] # show stack status
-  stacker update [STACK_NAME] # create or update stack
+  stacker diff [STACK_NAME]    # Show outstanding stack differences
+  stacker dump [STACK_NAME]    # Download stack template
+  stacker fmt [STACK_NAME]     # Re-format template JSON
+  stacker help [COMMAND]       # Describe available commands or one specific command
+  stacker init [PATH]          # Create stacker project directories
+  stacker list                 # List stacks
+  stacker show STACK_NAME      # Show details of a stack
+  stacker status [STACK_NAME]  # Show stack status
+  stacker update [STACK_NAME]  # Create or update stack
 
 Options:
-  [--path=project path]       # Default: STACKER_PATH or './'
-  [--region=AWS region name]  # Default: STACKER_REGION or 'us-east-1'
+  [--path=project path]        # Default: STACKER_PATH or './'
+  [--region=AWS region name]   # Default: STACKER_REGION or 'us-east-1'
 ```
 
 ## Examples
@@ -46,7 +47,7 @@ acme-cloudformation
 defaults:
   parameters:
     AmiImageId: 'ami-1234abcd'
-    CIDRBlock: '10.0'
+    CidrBlock: '10.0'
     VPCId:
       Stack: VPC
       Output: VPCId # depend on an output from another stack
