@@ -46,9 +46,7 @@ acme-cloudformation
 defaults:
   parameters:
     AmiImageId: 'ami-1234abcd'
-
     CIDRBlock: '10.0'
-
     VPCId:
       Stack: VPC
       Output: VPCId # depend on an output from another stack
