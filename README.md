@@ -5,7 +5,7 @@ Easily assemble CloudFormation stacks.
 
 ## Usage
 
-``` sh
+```sh
 $ stacker -h
 Commands:
   stacker diff [STACK_NAME]   # show outstanding stack differences
@@ -18,8 +18,8 @@ Commands:
   stacker update [STACK_NAME] # create or update stack
 
 Options:
-  [--path=project path]       # Default: .
-  [--region=AWS region name]  # Default: us-east-1
+  [--path=project path]       # Default: STACKER_PATH or './'
+  [--region=AWS region name]  # Default: STACKER_REGION or 'us-east-1'
 ```
 
 ## Authors

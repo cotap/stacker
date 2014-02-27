@@ -6,8 +6,11 @@ module Stacker
   class Cli < Thor
     include Thor::Actions
 
-    method_option :path, default: '.', banner: 'project path'
-    method_option :region, default: 'us-east-1', banner: 'AWS region name'
+    default_path = ENV['STACKER_PATH'] || '.'
+    default_region = ENV['STACKER_REGION'] || 'us-east-1'
+
+    method_option :path, default: default_path, banner: 'project path'
+    method_option :region, default: default_region, banner: 'AWS region name'
     def initialize(*args); super(*args) end
 
     desc "list", "list stacks"
