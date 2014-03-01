@@ -151,7 +151,12 @@ YAML
       @region ||= begin
         config_path =  File.join working_path, 'regions', "#{options['region']}.yml"
         if File.exists? config_path
-          config = YAML.load_file(config_path)
+          begin
+            config = YAML.load_file(config_path)
+          rescue Psych::SyntaxError => err
+            Stacker.logger.fatal err.message
+            exit 1
+          end
 
           defaults = config.fetch 'defaults', {}
           stacks = config.fetch 'stacks', {}
