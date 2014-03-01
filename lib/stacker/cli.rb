@@ -149,14 +149,18 @@ YAML
 
     def region
       @region ||= begin
-        config = YAML.load_file(
-          File.join working_path, 'regions', "#{options['region']}.yml"
-        )
+        config_path =  File.join working_path, 'regions', "#{options['region']}.yml"
+        if File.exists? config_path
+          config = YAML.load_file(config_path)
 
-        defaults = config.fetch 'defaults', {}
-        stacks = config.fetch 'stacks', {}
+          defaults = config.fetch 'defaults', {}
+          stacks = config.fetch 'stacks', {}
 
-        Region.new options['region'], defaults, stacks, templates_path
+          Region.new options['region'], defaults, stacks, templates_path
+        else
+          Stacker.logger.fatal "#{options['region']}.yml does not exist. Please configure or use stacker init"
+          exit 1
+        end
       end
     end
 
