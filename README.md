@@ -1,93 +1,113 @@
-sandwich
-========
+stacker
+=======
 
-Sandwich helps you put together your CloudFormation stacks.
+Easily assemble CloudFormation stacks with interdependencies.
 
+## Usage
 
-Problematic
------------
-Dependencies between CloudFormation's stacks have to be managed manually, either by scripting, or copy pasting Stacks Outputs in between stacks creation.
-Sandwich allows you to manage stack's dependencies through a YAML configuration file.
+```sh
+$ stacker -h
+Commands:
+  stacker diff [STACK_NAME]    # Show outstanding stack differences
+  stacker dump [STACK_NAME]    # Download stack template
+  stacker fmt [STACK_NAME]     # Re-format template JSON
+  stacker help [COMMAND]       # Describe available commands or one specific command
+  stacker init [PATH]          # Create stacker project directories
+  stacker list                 # List stacks
+  stacker show STACK_NAME      # Show details of a stack
+  stacker status [STACK_NAME]  # Show stack status
+  stacker update [STACK_NAME]  # Create or update stack
 
-## How does it work?
-To run sandwich, specify
-1. the path to your config file 
-2. the path to your root template folder
+Options:
+  [--path=project path]        # Default: STACKER_PATH or './'
+  [--region=AWS region name]   # Default: STACKER_REGION or 'us-east-1'
+```
 
-       ruby sandwich.rb --config=examples/configs/prod.yml --templates=examples/templates
-       
-## How do templates work?
-Take a look at [examples/prod.yml](https://github.com/CoTap/sandwich/blob/master/examples/configs/prod.yml)
+## Examples
 
-Under "stacks" list all your stacks
-       
-       - name: VPCProd
-       - name: PublicSubnetsProd
-       
-The name will be the name of your Stack on CloudFormation
-Each stack has a template, and a list of parameters
-       
-       stacks:
-         - name: VPCProd
-           template: vpc.json
-           parameters: []
-         - name: PublicSubnetsProd
-           template: public-subnets.json
-           parameters: []
-           
-The parameters there are the same as the parameters referenced inside of the JSON CloudFormation template. To give them a value there are 2 options:
+### Project Structure
 
-1. Pass a string value
-2. Reference an output from another stack
+```
+acme-cloudformation
+|-- regions
+|    |-- us-east-1.yml
+|    `-- us-west-1.yml
+`-- templates
+     |-- API.json
+     |-- Database.json
+     |-- PrivateSubnets.json
+     |-- PublicSubnets.json
+     `-- VPC.json
+```
 
-For example, we can specify a KeyName as a string, and a VpcId to attach the Subnet to:
+### Region File
 
-       stacks:
-         - name: VPCProd
-           template: vpc.json
-           parameters: []
-         - name: PublicSubnetsProd
-           template: public-subnets.json
-           parameters:
-           - param_name: KeyName
-             value: production_ec2_key
-           - param_name: VpcId
-             value:
-               stack: VPCProd
-               output: VpcId
+```yaml
+---
+defaults:
+  parameters:
+    AmiImageId: 'ami-1234abcd'
+    CidrBlock: '10.0'
+    VPCId:
+      Stack: VPC
+      Output: VPCId # depend on an output from another stack
 
-## What an output looks like.
+stacks:
+  - name: VPC
 
-       $ ruby sandwich.rb --config=examples/configs/prod.yml --templates=examples/templates
-       D, [2013-07-19T17:45:24.269205 #3299] DEBUG -- : "Initializing Stack: VPCProd"
-       I, [2013-07-19T17:45:25.176702 #3299]  INFO -- : "Using existing Stack: {VPCProd} "
-       I, [2013-07-19T17:45:25.604607 #3299]  INFO -- : "VPCProd Status => CREATE_COMPLETE"
-       I, [2013-07-19T17:45:26.013125 #3299]  INFO -- : "Getting current outputs for VPCProd"
-       I, [2013-07-19T17:45:26.364970 #3299]  INFO -- : "VPCProd Outputs => {\"VpcId\"=>\"vpc-a3658bcd\", \"InternetGateway\"=>\"igw-9d658bf3\"}"
-       I, [2013-07-19T17:45:26.739197 #3299]  INFO -- : "VPCProd Outputs => {\"VpcId\"=>\"vpc-a3658bcd\", \"InternetGateway\"=>\"igw-9d658bf3\"}"
-       D, [2013-07-19T17:45:26.739309 #3299] DEBUG -- : "Initializing Stack: PublicSubnetsProd"
-       I, [2013-07-19T17:45:27.227491 #3299]  INFO -- : "Using existing Stack: {PublicSubnetsProd} "
-       I, [2013-07-19T17:45:27.628653 #3299]  INFO -- : "PublicSubnetsProd Status => CREATE_COMPLETE"
+  - name: PublicSubnets
+    parameters:
+      InternetGateway:
+        Stack: VPC
+        Output: InternetGateway
 
-## License and Author
+  - name: PrivateSubnets
 
-- Author:: Martin Cozzi (<martin@cotap.com>)
+  - name: API
+    capabilities: 'CAPABILITY_IAM' # give permission to create IAM resources
+    parameters:
+      ChefRunList: 'role[api]'
 
-Permission is hereby granted, free of charge, to any person obtaining
-a copy of this software and associated documentation files (the
-"Software"), to deal in the Software without restriction, including
-without limitation the rights to use, copy, modify, merge, publish,
-distribute, sublicense, and/or sell copies of the Software, and to
-permit persons to whom the Software is furnished to do so, subject to
-the following conditions:
+  - name: DBMaster
+    parameters:
+      ChefRunList: 'role[db-master]'
+      InstanceImageId: 'ami-d3adb33f'
+      SubnetId:
+        Stack: PublicSubnets
+        Output: SubnetIdAZ1
+    template_name: Database # use template with a different name
 
-The above copyright notice and this permission notice shall be
-included in all copies or substantial portions of the Software.
+  - name: DBSlave
+    parameters:
+      ChefRunList: 'role[db-slave]'
+    template_name: Database
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
-LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
-WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+```
+
+## Authors
+
+Martin Cozzi (<martin@cotap.com>) and Evan Owen (<evan@cotap.com>)
+
+## License
+
+(The MIT License)
+
+© 2013 Cotap, Inc.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the “Software”), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

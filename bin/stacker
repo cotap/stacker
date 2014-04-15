@@ -1,0 +1,9 @@
+#!/usr/bin/env ruby
+
+require 'rubygems'
+require 'stacker'
+require 'stacker/cli'
+
+trap('INT') { puts ''; exit }
+
+Stacker::Cli.start ARGV
