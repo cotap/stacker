@@ -10,7 +10,12 @@ module Stacker
       @name = name
       @defaults = defaults
       @stacks = stacks.map do |options|
-        Stack.new self, options.fetch('name'), options
+        begin
+          Stack.new self, options.fetch('name'), options
+        rescue KeyError => err
+         Stacker.logger.fatal "Malformed YAML: #{err.message}"
+         exit 1
+        end
       end
       @templates_path = templates_path
     end
