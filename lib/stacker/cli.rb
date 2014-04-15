@@ -1,3 +1,4 @@
+require 'benchmark'
 require 'stacker'
 require 'thor'
 require 'yaml'
@@ -61,13 +62,19 @@ module Stacker
           next unless full_diff stack
 
           if yes? "Update remote template with these changes (y/n)?"
-            stack.update
+            time = Benchmark.realtime do
+              stack.update
+            end
+            Stacker.logger.info time stack_name, 'updated', time
           else
             Stacker.logger.warn 'Update skipped'
           end
         else
           if yes? "#{stack.name} does not exist. Create it (y/n)?"
-            stack.create
+            time = Benchmark.realtime do
+              stack.create
+            end
+            Stacker.logger.info time stack_name, 'created', time
           else
             Stacker.logger.warn 'Create skipped'
           end
@@ -164,6 +171,10 @@ YAML
       return {} if stack.parameters.resolver.dependencies.none?
       Stacker.logger.debug 'Resolving dependencies...'
       stack.parameters.resolved
+    end
+
+    def time (stack, action, benchmark)
+      return "Stack #{stack} #{action} in: #{(benchmark / 60).floor} min and #{(benchmark % 60).round} seconds."
     end
 
     def with_one_or_all stack_name = nil, &block
