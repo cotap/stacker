@@ -92,7 +92,7 @@ Martin Cozzi (<martin@cotap.com>) and Evan Owen (<evan@cotap.com>)
 
 (The MIT License)
 
-© 2013 Cotap, Inc.
+© 2014 Cotap, Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the “Software”), to deal
