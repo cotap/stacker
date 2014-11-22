@@ -1,3 +1,4 @@
+require 'active_support/core_ext/hash/keys'
 require 'active_support/core_ext/hash/slice'
 require 'active_support/core_ext/module/delegation'
 require 'aws-sdk'
@@ -9,10 +10,11 @@ require 'stacker/stack/template'
 module Stacker
   class Stack
 
-    class Error < StandardError;     end
+    class Error < StandardError; end
+    class StackPolicyError < Error; end
     class DoesNotExistError < Error; end
     class MissingParameters < Error; end
-    class UpToDateError < Error;     end
+    class UpToDateError < Error; end
 
     extend Memoist
 
@@ -24,6 +26,25 @@ module Stacker
       status
       status_reason
     ]
+
+    SAFE_UPDATE_POLICY = <<-JSON
+{
+  "Statement" : [
+    {
+      "Effect" : "Deny",
+      "Action" : ["Update:Replace", "Update:Delete"],
+      "Principal" : "*",
+      "Resource" : "*"
+    },
+    {
+      "Effect" : "Allow",
+      "Action" : "Update:*",
+      "Principal" : "*",
+      "Resource" : "*"
+    }
+  ]
+}
+JSON
 
     attr_reader :region, :name, :options
 
@@ -87,7 +108,12 @@ module Stacker
       raise Error.new err.message
     end
 
-    def update blocking = true
+    def update options = {}
+      options.assert_valid_keys(:blocking, :allow_destructive)
+
+      blocking = options.fetch(:blocking, true)
+      allow_destructive = options.fetch(:allow_destructive, false)
+
       if parameters.missing.any?
         raise MissingParameters.new(
           "Required parameters missing: #{parameters.missing.join ', '}"
@@ -96,11 +122,17 @@ module Stacker
 
       Stacker.logger.info 'Updating stack'
 
-      client.update(
+      update_params = {
         template: template.local,
         parameters: parameters.resolved,
         capabilities: capabilities.local
-      )
+      }
+
+      unless allow_destructive
+        update_params[:stack_policy_during_update_body] = SAFE_UPDATE_POLICY
+      end
+
+      client.update(update_params)
 
       wait_while_status 'UPDATE_IN_PROGRESS' if blocking
     rescue AWS::CloudFormation::Errors::ValidationError => err
@@ -116,12 +148,32 @@ module Stacker
 
     private
 
+    def report_status
+      case status
+      when /_COMPLETE$/
+        Stacker.logger.info "#{name} Status => #{status}"
+      when /_ROLLBACK_IN_PROGRESS$/
+        failure_event = client.events.enum(limit: 30).find do |event|
+          event.resource_status =~ /_FAILED$/
+        end
+        failure_reason = failure_event.resource_status_reason
+        if failure_reason =~ /stack policy/
+          raise StackPolicyError.new failure_reason
+        else
+          Stacker.logger.fatal "#{name} Status => #{status}"
+          raise Error.new "Failure Reason: #{failure_reason}"
+        end
+      else
+        Stacker.logger.debug "#{name} Status => #{status}"
+      end
+    end
+
     def wait_while_status wait_status
       while flush_cache(:status) && status == wait_status
-        Stacker.logger.debug "#{name} Status => #{status}"
+        report_status
         sleep 5
       end
-      Stacker.logger.info "#{name} Status => #{status}"
+      report_status
     end
 
   end

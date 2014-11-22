@@ -10,8 +10,15 @@ module Stacker
     default_path = ENV['STACKER_PATH'] || '.'
     default_region = ENV['STACKER_REGION'] || 'us-east-1'
 
-    method_option :path,   default: default_path,   banner: 'project path'
-    method_option :region, default: default_region, banner: 'AWS region name'
+    method_option :path, type: :string, default: default_path,
+      banner: 'project path'
+
+    method_option :region, type: :string, default: default_region,
+      banner: 'AWS region name'
+
+    method_option :allow_destructive, type: :boolean, default: false,
+      banner: 'allow destructive updates'
+
     def initialize(*args); super(*args) end
 
     desc "init [PATH]", "Create stacker project directories"
@@ -63,7 +70,7 @@ module Stacker
 
           if yes? "Update remote template with these changes (y/n)?"
             time = Benchmark.realtime do
-              stack.update
+              stack.update allow_destructive: options['allow_destructive']
             end
             Stacker.logger.info formatted_time stack_name, 'updated', time
           else
@@ -199,6 +206,14 @@ YAML
         region.stacks.each(&yield_with_stack)
       end
 
+    rescue Stacker::Stack::StackPolicyError => err
+      if options['allow_destructive']
+        Stacker.logger.fatal err.message
+      else
+        Stacker.logger.fatal 'Stack update policy prevents replacing or destroying resources.'
+        Stacker.logger.warn 'Try running again with \'--allow-destructive\''
+      end
+      exit 1
     rescue Stacker::Stack::Error => err
       Stacker.logger.fatal err.message
       exit 1
