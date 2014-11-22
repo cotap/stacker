@@ -65,7 +65,7 @@ module Stacker
             time = Benchmark.realtime do
               stack.update
             end
-            Stacker.logger.info time stack_name, 'updated', time
+            Stacker.logger.info formatted_time stack_name, 'updated', time
           else
             Stacker.logger.warn 'Update skipped'
           end
@@ -74,7 +74,7 @@ module Stacker
             time = Benchmark.realtime do
               stack.create
             end
-            Stacker.logger.info time stack_name, 'created', time
+            Stacker.logger.info formatted_time stack_name, 'created', time
           else
             Stacker.logger.warn 'Create skipped'
           end
@@ -139,6 +139,10 @@ YAML
       end
     end
 
+    def formatted_time stack, action, benchmark
+      "Stack #{stack} #{action} in: #{(benchmark / 60).floor} min and #{(benchmark % 60).round} seconds."
+    end
+
     def full_diff stack
       templ_diff = stack.template.diff :color
       param_diff = stack.parameters.diff :color
@@ -180,10 +184,6 @@ YAML
       return {} if stack.parameters.resolver.dependencies.none?
       Stacker.logger.debug 'Resolving dependencies...'
       stack.parameters.resolved
-    end
-
-    def time (stack, action, benchmark)
-      return "Stack #{stack} #{action} in: #{(benchmark / 60).floor} min and #{(benchmark % 60).round} seconds."
     end
 
     def with_one_or_all stack_name = nil, &block
