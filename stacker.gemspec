@@ -28,6 +28,6 @@ Gem::Specification.new do |s|
   s.add_dependency 'rainbow', '~> 1.1'
   s.add_dependency 'thor', '~> 0.18'
 
-  s.add_development_dependency 'rake', '= 10.1.0'
-  s.add_development_dependency 'rspec', '= 2.14.1'
+  s.add_development_dependency 'rake', '~> 10.4'
+  s.add_development_dependency 'rspec', '~> 2.99'
 end
