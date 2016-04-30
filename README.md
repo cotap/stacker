@@ -51,15 +51,34 @@ defaults:
     VPCId:
       Stack: VPC
       Output: VPCId # depend on an output from another stack
+    InternetGateway:
+      Stack: VPC
+      Output: InternetGateway
+    PublicSubnets:
+      - Stack: PublicSubnetA
+        Output: SubnetId
+      - Stack: PublicSubnetB
+        Output: SubnetId
+      - Stack: PublicSubnetC
+        Output: SubnetId
 
 stacks:
   - name: VPC
 
-  - name: PublicSubnets
+  - name: PublicSubnetA
+    template_name: PublicSubnet
     parameters:
-      InternetGateway:
-        Stack: VPC
-        Output: InternetGateway
+      AZ: us-east-1a
+
+  - name: PublicSubnetB
+    template_name: PublicSubnet
+    parameters:
+      AZ: us-east-1b
+
+  - name: PublicSubnetC
+    template_name: PublicSubnet
+    parameters:
+      AZ: us-east-1c
 
   - name: PrivateSubnets
 
@@ -68,18 +87,18 @@ stacks:
     parameters:
       ChefRunList: 'role[api]'
 
-  - name: DBMaster
+  - name: DBPrimary
     parameters:
-      ChefRunList: 'role[db-master]'
+      ChefRunList: 'role[db-primary]'
       InstanceImageId: 'ami-d3adb33f'
       SubnetId:
-        Stack: PublicSubnets
-        Output: SubnetIdAZ1
+        Stack: PublicSubnetA
+        Output: SubnetId
     template_name: Database # use template with a different name
 
-  - name: DBSlave
+  - name: DBReplica
     parameters:
-      ChefRunList: 'role[db-slave]'
+      ChefRunList: 'role[db-replica]'
     template_name: Database
 
 ```
@@ -92,7 +111,7 @@ Martin Cozzi (<martin@cotap.com>) and Evan Owen (<evan@cotap.com>)
 
 (The MIT License)
 
-© 2014 Cotap, Inc.
+© 2016 Cotap, Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the “Software”), to deal
