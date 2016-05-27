@@ -1,7 +1,7 @@
 require 'memoist'
 require 'stacker/differ'
-require 'stacker/resolver'
 require 'stacker/stack/component'
+require 'stacker/stack/parameter'
 
 module Stacker
   class Stack
@@ -31,9 +31,9 @@ module Stacker
         ]
 
         available = template_defaults.merge(
-          region_defaults.merge(
-            stack.options.fetch 'parameters', {}
-          )
+          region_defaults
+        ).merge(
+          stack.options.fetch 'parameters', {}
         )
 
         available.slice(*template_definitions.keys)
@@ -49,19 +49,25 @@ module Stacker
       memoize :remote
 
       def resolved
-        resolver.resolved
+        Hash[parameters.map { |k, v| [ k, v.resolved ] }]
       end
       memoize :resolved
 
-      def resolver
-        Resolver.new stack.region, local
+      def dependencies
+        parameters.map(&:last).map(&:dependencies).flatten
       end
-      memoize :resolver
+      memoize :dependencies
 
       def diff *args
         Differ.yaml_diff Hash[resolved.sort], Hash[remote.sort], *args
       end
       memoize :diff
+
+      private
+
+      def parameters
+        local.map { |k, v| [k, Parameter.new(v, stack.region)] }
+      end
 
     end
   end

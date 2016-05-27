@@ -21,6 +21,7 @@ Commands:
 Options:
   [--path=project path]        # Default: STACKER_PATH or './'
   [--region=AWS region name]   # Default: STACKER_REGION or 'us-east-1'
+  [--allow-destructive=allow destructive updates], [--no-allow-destructive]
 ```
 
 ## Examples
