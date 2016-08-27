@@ -8,6 +8,19 @@ module Stacker
     class DoesNotExistError < Error; end
     class MissingParameters < Error; end
     class UpToDateError < Error; end
+    class CannotDescribeChangeSet < Error; end
+
+    class StackUndeclared < Error
+
+      def initialize(name)
+        @name = name
+      end
+
+      def message
+        "Stack with id #{@name} is not declared"
+      end
+
+    end
 
     class TemplateSyntaxError < Error
 
