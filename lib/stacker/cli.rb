@@ -162,6 +162,7 @@ YAML
       Stacker.logger.info "\n#{templ_diff.indent}\n" if templ_diff.length > 0
       Stacker.logger.info "\n#{param_diff.indent}\n" if param_diff.length > 0
 
+      Stacker.logger.info stack.pretty_change_set
       true
     end
 

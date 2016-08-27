@@ -21,7 +21,7 @@ module Stacker
     end
 
     def client
-      @client ||= AWS::CloudFormation.new region: name
+      @client ||= Aws::CloudFormation::Client.new region: name
     end
 
     def stack name

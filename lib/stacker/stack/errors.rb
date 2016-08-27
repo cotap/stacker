@@ -8,6 +8,7 @@ module Stacker
     class DoesNotExistError < Error; end
     class MissingParameters < Error; end
     class UpToDateError < Error; end
+    class CannotDescribeChangeSet < Error; end
 
     class TemplateSyntaxError < Error
 
