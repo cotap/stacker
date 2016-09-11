@@ -3,18 +3,13 @@ require 'active_support/core_ext/hash/slice'
 require 'active_support/core_ext/module/delegation'
 require 'aws-sdk'
 require 'memoist'
+require 'stacker/stack/errors'
 require 'stacker/stack/capabilities'
 require 'stacker/stack/parameters'
 require 'stacker/stack/template'
 
 module Stacker
   class Stack
-
-    class Error < StandardError; end
-    class StackPolicyError < Error; end
-    class DoesNotExistError < Error; end
-    class MissingParameters < Error; end
-    class UpToDateError < Error; end
 
     extend Memoist
 
