@@ -2,6 +2,7 @@ require 'active_support/core_ext/string/inflections'
 require 'json'
 require 'memoist'
 require 'stacker/differ'
+require 'stacker/stack'
 require 'stacker/stack/component'
 
 module Stacker
@@ -26,6 +27,8 @@ module Stacker
             {}
           end
         end
+      rescue JSON::ParserError
+        raise TemplateSyntaxError.new path
       end
 
       def remote
