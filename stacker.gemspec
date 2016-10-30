@@ -28,6 +28,8 @@ Gem::Specification.new do |s|
   s.add_dependency 'memoist', '~> 0.14'
   s.add_dependency 'rainbow', '~> 1.1'
   s.add_dependency 'thor', '~> 0.18'
+  s.add_dependency 'yamllint', '~> 0.0.9'
 
   s.add_development_dependency 'rake', '~> 10.4'
+  s.add_development_dependency 'rspec-expectations', '~> 3.5'
 end

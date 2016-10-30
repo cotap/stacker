@@ -1,5 +1,6 @@
 require 'active_support/core_ext/string/inflections'
 require 'json'
+require 'yaml'
 require 'memoist'
 require 'stacker/differ'
 require 'stacker/stack'
@@ -17,23 +18,35 @@ module Stacker
         File.exists? path
       end
 
+      def local_raw
+        File.read path
+      end
+      memoize :local_raw
+
       def local
+        raise TemplateDoesNotExistError.new name unless exists?
         @local ||= begin
-          if exists?
-            template = JSON.parse File.read path
-            template['AWSTemplateFormatVersion'] ||= FORMAT_VERSION
-            template
+          template = if json?
+            JSON.parse File.read path
           else
-            {}
+            YAML.load File.read path
           end
+          template['AWSTemplateFormatVersion'] ||= FORMAT_VERSION
+          template
         end
-      rescue JSON::ParserError
+      rescue JSON::ParserError, Psych::SyntaxError
         raise TemplateSyntaxError.new path
       end
 
+      def remote_raw
+        stack.region.client.get_template(
+          stack_name: stack.name
+        ).template_body
+      end
+      memoize :remote_raw
+
       def remote
-        @remote ||= JSON.parse stack.region.client.get_template(
-                                 stack_name: stack.name).template_body
+        @remote ||= json? ? JSON.parse(remote_raw) : YAML.parse(remote_raw)
       rescue Aws::CloudFormation::Errors::ValidationError => err
         if err.message =~ /does not exist/
           raise DoesNotExistError.new err.message
@@ -43,7 +56,11 @@ module Stacker
       end
 
       def diff *args
-        Differ.json_diff local, remote, *args
+        if json?
+          Differ.json_diff local, remote, *args
+        else
+          Differ.diff local_raw, remote_raw, *args
+        end
       end
       memoize :diff
 
@@ -57,11 +74,30 @@ module Stacker
 
       private
 
-      def path
-        @path ||= File.join(
+      def name
+        stack.options.fetch('template_name', stack.name)
+      end
+
+      def path_with_ext ext
+        File.join(
           stack.region.templates_path,
-          "#{stack.options.fetch('template_name', stack.name)}.json"
+          "#{name}.#{ext}"
         )
+      end
+
+      def path
+        json = path_with_ext 'json'
+        yaml = path_with_ext 'yml'
+        File.exists?(json) ? json : yaml
+      end
+      memoize :path
+
+      def json?
+        path.end_with? '.json'
+      end
+
+      def yaml?
+        path.end_with? '.yml'
       end
 
       class JSONFormatter

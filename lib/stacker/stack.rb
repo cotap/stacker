@@ -119,7 +119,7 @@ JSON
 
       region.client.create_stack(
         stack_name: name,
-        template_body: template.local.to_json,
+        template_body: template.local_raw,
         parameters: params,
         capabilities: capabilities.local
       )
@@ -227,7 +227,7 @@ JSON
       change_set_name.tap do |csname|
         region.client.create_change_set(
           stack_name: name,
-          template_body: template.local.to_json,
+          template_body: template.local_raw,
           parameters: parameters.resolved.map do |k, v|
             {
               parameter_key: k,

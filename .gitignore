@@ -5,3 +5,5 @@ Gemfile.lock
 
 .bundle/
 vendor/
+
+tests/cfn/*

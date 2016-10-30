@@ -1,3 +1,4 @@
+require 'active_support/core_ext/object/try'
 require 'benchmark'
 require 'stacker'
 require 'thor'
