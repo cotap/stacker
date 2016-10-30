@@ -3,6 +3,8 @@ require 'active_support/core_ext/hash/slice'
 require 'active_support/core_ext/module/delegation'
 require 'aws-sdk'
 require 'memoist'
+require 'securerandom'
+
 require 'stacker/stack/errors'
 require 'stacker/stack/capabilities'
 require 'stacker/stack/parameters'
@@ -16,9 +18,7 @@ module Stacker
     CLIENT_METHODS = %w[
       creation_time
       description
-      exists?
       last_updated_time
-      status
       status_reason
     ]
 
@@ -48,7 +48,25 @@ JSON
     end
 
     def client
-      @client ||= region.client.stacks[name]
+      @client = begin
+        res = region.client.describe_stacks(stack_name: name)
+        res.stacks.first
+      rescue Aws::CloudFormation::Errors::ValidationError
+        nil
+      end
+    end
+    memoize :client
+
+    def exists?
+      !!client
+    end
+
+    def status
+      if client
+        client.stack_status
+      else
+        "#{name}:\nStack with id #{name} does not exist"
+      end
     end
 
     delegate *CLIENT_METHODS, to: :client
@@ -73,7 +91,9 @@ JSON
     def outputs
       @outputs ||= begin
         return {} unless complete?
-        Hash[client.outputs.map { |output| [ output.key, output.value ] }]
+        Hash[client.outputs.map do |output|
+               [ output.output_key, output.output_value ]
+             end]
       end
     end
 
@@ -91,15 +111,22 @@ JSON
 
       Stacker.logger.info 'Creating stack'
 
-      region.client.stacks.create(
-        name,
-        template.local,
-        parameters: parameters.resolved,
+      params = parameters.resolved.map do |k, v|
+        {
+          parameter_key: k,
+          parameter_value: v
+        }
+      end
+
+      region.client.create_stack(
+        stack_name: name,
+        template_body: template.local_raw,
+        parameters: params,
         capabilities: capabilities.local
       )
 
       wait_while_status 'CREATE_IN_PROGRESS' if blocking
-    rescue AWS::CloudFormation::Errors::ValidationError => err
+    rescue Aws::CloudFormation::Errors::ValidationError => err
       raise Error.new err.message
     end
 
@@ -117,20 +144,20 @@ JSON
 
       Stacker.logger.info 'Updating stack'
 
-      update_params = {
-        template: template.local,
-        parameters: parameters.resolved,
-        capabilities: capabilities.local
-      }
-
       unless allow_destructive
-        update_params[:stack_policy_during_update_body] = SAFE_UPDATE_POLICY
+        raise StackPolicyError if describe_change_set.any? do |c|
+          c[:change][:replacement] == 'True' ||
+            c[:change][:action] =~ /remove/i
+        end
       end
 
-      client.update(update_params)
+      region.client.execute_change_set(
+        change_set_name: change_set,
+        stack_name: name
+      )
 
       wait_while_status 'UPDATE_IN_PROGRESS' if blocking
-    rescue AWS::CloudFormation::Errors::ValidationError => err
+    rescue Aws::CloudFormation::Errors::ValidationError => err
       case err.message
       when /does not exist/
         raise DoesNotExistError.new err.message
@@ -141,7 +168,76 @@ JSON
       end
     end
 
+    def describe_change_set
+      retries = 6
+      changes = []
+      while changes.empty?
+        resp = region.client.describe_change_set(
+          change_set_name: change_set,
+          stack_name: name
+        )
+        changes = resp.changes
+        if changes.empty?
+          raise CannotDescribeChangeSet.new 'Empty change set' if retries == 0
+          retries -= 1
+          sleep 1
+        end
+      end
+      changes.map do |c|
+        rc = c.resource_change
+        {
+          type: c.type,
+          change: {
+            logical_resource_id: rc.logical_resource_id,
+            action: rc.action,
+            replacement: rc.replacement,
+          }
+        }
+      end
+    end
+    memoize :describe_change_set
+
+    def pretty_change_set
+      riw = describe_change_set.map do |c|
+        c[:change][:logical_resource_id].length
+      end.max
+      fmt = "%-6s %-#{riw}s %-5s"
+
+      ([fmt % ['Action', 'Resource', 'Replacement?'], '='*(riw+20)] +
+        describe_change_set.map do |c|
+        change = c[:change]
+        fmt % [
+          change[:action],
+          change[:logical_resource_id],
+          change[:replacement]
+        ]
+      end).join("\n")
+    end
+
     private
+
+    def change_set_name
+      "stacker-#{SecureRandom.hex}"
+    end
+    memoize :change_set_name
+
+    def change_set
+      change_set_name.tap do |csname|
+        region.client.create_change_set(
+          stack_name: name,
+          template_body: template.local_raw,
+          parameters: parameters.resolved.map do |k, v|
+            {
+              parameter_key: k,
+              parameter_value: v
+            }
+          end,
+          capabilities: capabilities.local,
+          change_set_name: csname
+        )
+      end
+    end
+    memoize :change_set
 
     def report_status
       case status
@@ -164,6 +260,7 @@ JSON
     end
 
     def wait_while_status wait_status
+      sleep 5 # Give CFN some time to move out of the previous state.
       while flush_cache('status') && status == wait_status
         report_status
         sleep 5

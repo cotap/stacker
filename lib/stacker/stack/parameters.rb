@@ -44,7 +44,9 @@ module Stacker
       end
 
       def remote
-        client.parameters
+        Hash[client.parameters.map do |p|
+               [p.parameter_key, p.parameter_value]
+             end]
       end
       memoize :remote
 

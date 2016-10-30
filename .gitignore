@@ -1,3 +1,8 @@
 *.gem
 *.swp
 Gemfile.lock
+
+.bundle/
+vendor/
+
+tests/cfn/*

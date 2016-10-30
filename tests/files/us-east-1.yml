@@ -1,0 +1,15 @@
+defaults:
+  parameters:
+    CidrBlock: '10.0'
+stacks:
+  - name: Test-VPC
+    template_name: VPC
+    parameters:
+      Name: "TestVPC"
+
+  - name: Test-SecurityGroup
+    template_name: SecurityGroup
+    parameters:
+      VpcId:
+        Stack: Test-VPC
+        Output: VpcId

@@ -1,3 +1,4 @@
+require 'active_support/core_ext/object/try'
 require 'benchmark'
 require 'stacker'
 require 'thor'
@@ -50,6 +51,8 @@ module Stacker
       with_one_or_all(stack_name) do |stack|
         Stacker.logger.debug stack.status.indent
       end
+    rescue Aws::CloudFormation::Errors::ValidationError => err
+      Stacker.logger.fatal err.to_s
     end
 
     desc "diff [STACK_NAME]", "Show outstanding stack differences"
@@ -162,6 +165,7 @@ YAML
       Stacker.logger.info "\n#{templ_diff.indent}\n" if templ_diff.length > 0
       Stacker.logger.info "\n#{param_diff.indent}\n" if param_diff.length > 0
 
+      Stacker.logger.info stack.pretty_change_set
       true
     end
 
