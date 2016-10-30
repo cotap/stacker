@@ -1,4 +1,5 @@
 require 'jsonlint'
+require 'yamllint'
 
 module Stacker
   class Stack
@@ -9,6 +10,30 @@ module Stacker
     class MissingParameters < Error; end
     class UpToDateError < Error; end
     class CannotDescribeChangeSet < Error; end
+
+    class StackUndeclared < Error
+
+      def initialize(name)
+        @name = name
+      end
+
+      def message
+        "Stack with id #{@name} is not declared"
+      end
+
+    end
+
+    class TemplateDoesNotExistError < Error
+
+      def initialize(name)
+        @name = name
+      end
+
+      def message
+        "No template found with name '#{@name}'"
+      end
+
+    end
 
     class TemplateSyntaxError < Error
 
@@ -30,9 +55,16 @@ END_MSG
 
       def errors
         @errors ||= begin
-          linter = JsonLint::Linter.new
           linter.check path
           linter.errors.values.join "\n"
+        end
+      end
+
+      def linter
+        linter ||= if path.ends_with? '.json'
+          JsonLint::Linter.new
+        else
+          YamlLint::Linter.new
         end
       end
 

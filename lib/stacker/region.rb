@@ -1,5 +1,6 @@
 require 'aws-sdk'
 require 'stacker/stack'
+require 'stacker/stack/errors'
 
 module Stacker
   class Region
@@ -25,7 +26,9 @@ module Stacker
     end
 
     def stack name
-      stacks.find { |s| s.name == name } || Stack.new(self, name)
+      stacks.find { |s| s.name == name }.tap do |stk|
+        raise Stack::StackUndeclared.new name unless stk
+      end
     end
 
   end

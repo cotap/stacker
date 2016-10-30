@@ -48,18 +48,25 @@ JSON
     end
 
     def client
-      @client ||= begin
+      @client = begin
         res = region.client.describe_stacks(stack_name: name)
         res.stacks.first
+      rescue Aws::CloudFormation::Errors::ValidationError
+        nil
       end
     end
+    memoize :client
 
     def exists?
       !!client
     end
 
     def status
-      client.stack_status
+      if client
+        client.stack_status
+      else
+        "#{name}:\nStack with id #{name} does not exist"
+      end
     end
 
     delegate *CLIENT_METHODS, to: :client
@@ -113,7 +120,7 @@ JSON
 
       region.client.create_stack(
         stack_name: name,
-        template_body: template.local.to_json,
+        template_body: template.local_raw,
         parameters: params,
         capabilities: capabilities.local
       )
@@ -218,7 +225,7 @@ JSON
       change_set_name.tap do |csname|
         region.client.create_change_set(
           stack_name: name,
-          template_body: template.local.to_json,
+          template_body: template.local_raw,
           parameters: parameters.resolved.map do |k, v|
             {
               parameter_key: k,
