@@ -42,7 +42,11 @@ module Stacker
 
       def resolved
         if dependency?
-          resolver.resolve
+          begin
+            resolver.resolve
+          rescue => err
+            raise ParameterResolutionError.new value, err
+          end
         elsif value.is_a?(Array)
           value.map(&:resolved).join ','
         else

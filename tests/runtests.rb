@@ -4,6 +4,7 @@ require 'rspec/expectations'
 include RSpec::Matchers
 
 def cmd(args)
+  puts "stacker #{args}"
   Open3.capture2e("yes|stacker #{args}")[0]
 end
 
@@ -33,3 +34,13 @@ expect(cmd 'update Test-VPC').to match "No template found with name 'VPC'"
 
 expect(cmd 'update Test-VPC').to match 'Stack Test-VPC created'
 expect(cmd 'update Test-SecurityGroup').to match 'Stack Test-SecurityGroup created'
+
+# Environments
+`cp -r ../files/environments .`
+
+expect(cmd 'status').to match 'Stack with id Test-Dev-VPC does not exist'
+
+# Environments with configured stack name prefix
+`cp ../files/env_config.yml ./environments/config.yml`
+
+expect(cmd 'status').to match 'Stack with id Dev-Prefix-Test-Dev-VPC does not exist'

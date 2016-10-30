@@ -23,6 +23,19 @@ module Stacker
 
     end
 
+    class ParameterResolutionError < Error
+
+      def initialize(value, error)
+        @value = value
+        @error = error
+      end
+
+      def message
+        "Failed to resolve reference parameter: #{@value}\nError: #{@error}"
+      end
+
+    end
+
     class TemplateDoesNotExistError < Error
 
       def initialize(name)

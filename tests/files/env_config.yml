@@ -1,0 +1,9 @@
+environments:
+  development:
+    prefix: Dev-Prefix-
+
+  staging:
+    prefix: Stage-Prefix-
+
+  production:
+    prefix: Prod-Prefix-

@@ -10,12 +10,16 @@ module Stacker
 
     default_path = ENV['STACKER_PATH'] || '.'
     default_region = ENV['STACKER_REGION'] || 'us-east-1'
+    default_env = ENV['STACKER_ENVIRONMENT'] || 'development'
 
     method_option :path, type: :string, default: default_path,
       banner: 'project path'
 
     method_option :region, type: :string, default: default_region,
       banner: 'AWS region name'
+
+    method_option :environment, type: :string, default: default_env,
+      banner: 'Environment name (e.g. production, staging)'
 
     method_option :allow_destructive, type: :boolean, default: false,
       banner: 'allow destructive updates'
@@ -111,18 +115,6 @@ module Stacker
       end
     end
 
-    desc "fmt [STACK_NAME]", "Re-format template JSON"
-    def fmt stack_name = nil
-      with_one_or_all(stack_name) do |stack|
-        if stack.template.exists?
-          Stacker.logger.warn 'Formatting...'
-          stack.template.write
-        else
-          Stacker.logger.warn "#{stack.name} does not exist"
-        end
-      end
-    end
-
     private
 
     def init_project path
@@ -171,7 +163,7 @@ YAML
 
     def region
       @region ||= begin
-        config_path =  File.join working_path, 'regions', "#{options['region']}.yml"
+        config_path =  region_config_path
         if File.exists? config_path
           begin
             config = YAML.load_file(config_path)
@@ -182,6 +174,13 @@ YAML
 
           defaults = config.fetch 'defaults', {}
           stacks = config.fetch 'stacks', {}
+          stack_prefix = environment_config.fetch('prefix', '')
+          stacks.map do |stk|
+            stk.tap do |stk|
+              stk['template_name'] ||= stk['name']
+              stk['name'] = stack_prefix + stk['name']
+            end
+          end
 
           Region.new options['region'], defaults, stacks, templates_path
         else
@@ -189,6 +188,32 @@ YAML
           exit 1
         end
       end
+    end
+
+    def region_config_path
+      region_path = if environments?
+        File.join working_path, 'environments', options['environment']
+      else
+        File.join working_path, 'regions'
+      end
+      File.join region_path, "#{options['region']}.yml"
+    end
+
+    def environments_path
+      File.join working_path, 'environments'
+    end
+
+    def environments?
+      File.exists? environments_path
+    end
+
+    def environment_config
+      config_path = File.join environments_path, 'config.yml'
+      return {} unless File.exists? config_path
+      YAML.load_file(config_path).fetch('environments', {}).fetch(
+        options['environment'],
+        {}
+      )
     end
 
     def resolve stack
