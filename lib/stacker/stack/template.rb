@@ -32,8 +32,9 @@ module Stacker
       end
 
       def remote
-        @remote ||= JSON.parse client.template
-      rescue AWS::CloudFormation::Errors::ValidationError => err
+        @remote ||= JSON.parse stack.region.client.get_template(
+                                 stack_name: stack.name).template_body
+      rescue Aws::CloudFormation::Errors::ValidationError => err
         if err.message =~ /does not exist/
           raise DoesNotExistError.new err.message
         else
