@@ -125,7 +125,7 @@ JSON
       )
 
       wait_until_complete if blocking
-    rescue Aws::CloudFormation::Errors::ValidationError => err
+    rescue Aws::CloudFormation::Errors::ValidationError, ArgumentError => err
       raise Error.new err.message
     end
 
@@ -238,6 +238,8 @@ JSON
           change_set_name: csname
         )
       end
+    rescue Aws::CloudFormation::Errors::ValidationError => err
+      raise Error.new err.message
     end
     memoize :change_set
 
