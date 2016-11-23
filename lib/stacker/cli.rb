@@ -174,15 +174,12 @@ YAML
 
           defaults = config.fetch 'defaults', {}
           stacks = config.fetch 'stacks', {}
-          stack_prefix = environment_config.fetch('prefix', '')
-          stacks.map do |stk|
-            stk.tap do |stk|
-              stk['template_name'] ||= stk['name']
-              stk['name'] = stack_prefix + stk['name']
-            end
-          end
+          region_options = {
+            stack_prefix: environment_config.fetch('prefix', '')
+          }
 
-          Region.new options['region'], defaults, stacks, templates_path
+          Region.new options['region'], defaults, stacks, templates_path,
+                     region_options
         else
           Stacker.logger.fatal "#{options['region']}.yml does not exist. Please configure or use stacker init"
           exit 1
