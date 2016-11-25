@@ -53,17 +53,23 @@ module Stacker
     desc "status [STACK_NAME]", "Show stack status"
     def status stack_name = nil
       with_one_or_all(stack_name) do |stack|
-        Stacker.logger.debug stack.status.indent
+        begin
+          Stacker.logger.debug stack.status.indent
+        rescue Aws::CloudFormation::Errors::ValidationError => err
+          Stacker.logger.fatal err.to_s
+        end
       end
-    rescue Aws::CloudFormation::Errors::ValidationError => err
-      Stacker.logger.fatal err.to_s
     end
 
     desc "diff [STACK_NAME]", "Show outstanding stack differences"
     def diff stack_name = nil
       with_one_or_all(stack_name) do |stack|
-        resolve stack
-        next unless full_diff stack
+        begin
+          resolve stack
+          next unless full_diff stack
+        rescue Aws::CloudFormation::Errors::ValidationError => err
+          Stacker.logger.fatal err.to_s
+        end
       end
     end
 
