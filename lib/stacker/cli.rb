@@ -55,8 +55,9 @@ module Stacker
       with_one_or_all(stack_name) do |stack|
         begin
           Stacker.logger.debug stack.status.indent
-        rescue Aws::CloudFormation::Errors::ValidationError => err
-          Stacker.logger.fatal err.to_s
+        rescue Aws::CloudFormation::Errors::ValidationError,
+               Stacker::Stack::Error => err
+          Stacker.logger.error err.message
         end
       end
     end
@@ -67,8 +68,9 @@ module Stacker
         begin
           resolve stack
           next unless full_diff stack
-        rescue Aws::CloudFormation::Errors::ValidationError => err
-          Stacker.logger.fatal err.to_s
+        rescue Aws::CloudFormation::Errors::ValidationError,
+               Stacker::Stack::Error => err
+          Stacker.logger.error err.message
         end
       end
     end
@@ -76,28 +78,33 @@ module Stacker
     desc "update [STACK_NAME]", "Create or update stack"
     def update stack_name = nil
       with_one_or_all(stack_name) do |stack|
-        resolve stack
+        begin
+          resolve stack
 
-        if stack.exists?
-          next unless full_diff stack
+          if stack.exists?
+            next unless full_diff stack
 
-          if yes? "Update remote template with these changes (y/n)?"
-            time = Benchmark.realtime do
-              stack.update allow_destructive: options['allow_destructive']
+            if yes? "Update remote template with these changes (y/n)?"
+              time = Benchmark.realtime do
+                stack.update allow_destructive: options['allow_destructive']
+              end
+              Stacker.logger.info formatted_time stack_name, 'updated', time
+            else
+              Stacker.logger.warn 'Update skipped'
             end
-            Stacker.logger.info formatted_time stack_name, 'updated', time
           else
-            Stacker.logger.warn 'Update skipped'
-          end
-        else
-          if yes? "#{stack.name} does not exist. Create it (y/n)?"
-            time = Benchmark.realtime do
-              stack.create
+            if yes? "#{stack.name} does not exist. Create it (y/n)?"
+              time = Benchmark.realtime do
+                stack.create
+              end
+              Stacker.logger.info formatted_time stack_name, 'created', time
+            else
+              Stacker.logger.warn 'Create skipped'
             end
-            Stacker.logger.info formatted_time stack_name, 'created', time
-          else
-            Stacker.logger.warn 'Create skipped'
           end
+        rescue Aws::CloudFormation::Errors::ValidationError,
+               Stacker::Stack::Error => err
+          Stacker.logger.error err.message
         end
       end
     end
