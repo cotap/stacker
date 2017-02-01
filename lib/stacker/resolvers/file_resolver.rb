@@ -6,7 +6,7 @@ module Stacker
     class FileResolver < Resolver
 
       def resolve
-        IO.read ref
+        IO.read(ref).strip
       end
 
     end

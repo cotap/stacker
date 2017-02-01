@@ -9,7 +9,9 @@ module Stacker
       end
 
       def remote
-        @remote ||= client.capabilities
+        # `capabilities` actually returns a
+        # !ruby/array:Aws::Xml::DefaultList
+        @remote ||= client.capabilities.to_a
       end
 
     end

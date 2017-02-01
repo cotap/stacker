@@ -1,6 +1,7 @@
 require 'coderay'
 require 'delegate'
 require 'indentation'
+require 'logger'
 require 'rainbow'
 
 module Stacker

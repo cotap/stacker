@@ -1,3 +1,4 @@
+require 'active_support/core_ext/object/try'
 require 'benchmark'
 require 'stacker'
 require 'thor'
@@ -9,12 +10,16 @@ module Stacker
 
     default_path = ENV['STACKER_PATH'] || '.'
     default_region = ENV['STACKER_REGION'] || 'us-east-1'
+    default_env = ENV['STACKER_ENVIRONMENT'] || 'development'
 
     method_option :path, type: :string, default: default_path,
       banner: 'project path'
 
     method_option :region, type: :string, default: default_region,
       banner: 'AWS region name'
+
+    method_option :environment, type: :string, default: default_env,
+      banner: 'Environment name (e.g. production, staging)'
 
     method_option :allow_destructive, type: :boolean, default: false,
       banner: 'allow destructive updates'
@@ -48,43 +53,58 @@ module Stacker
     desc "status [STACK_NAME]", "Show stack status"
     def status stack_name = nil
       with_one_or_all(stack_name) do |stack|
-        Stacker.logger.debug stack.status.indent
+        begin
+          Stacker.logger.debug stack.status.indent
+        rescue Aws::CloudFormation::Errors::ValidationError,
+               Stacker::Stack::Error => err
+          Stacker.logger.error err.message
+        end
       end
     end
 
     desc "diff [STACK_NAME]", "Show outstanding stack differences"
     def diff stack_name = nil
       with_one_or_all(stack_name) do |stack|
-        resolve stack
-        next unless full_diff stack
+        begin
+          resolve stack
+          next unless full_diff stack
+        rescue Aws::CloudFormation::Errors::ValidationError,
+               Stacker::Stack::Error => err
+          Stacker.logger.error err.message
+        end
       end
     end
 
     desc "update [STACK_NAME]", "Create or update stack"
     def update stack_name = nil
       with_one_or_all(stack_name) do |stack|
-        resolve stack
+        begin
+          resolve stack
 
-        if stack.exists?
-          next unless full_diff stack
+          if stack.exists?
+            next unless full_diff stack
 
-          if yes? "Update remote template with these changes (y/n)?"
-            time = Benchmark.realtime do
-              stack.update allow_destructive: options['allow_destructive']
+            if yes? "Update remote template with these changes (y/n)?"
+              time = Benchmark.realtime do
+                stack.update allow_destructive: options['allow_destructive']
+              end
+              Stacker.logger.info formatted_time stack_name, 'updated', time
+            else
+              Stacker.logger.warn 'Update skipped'
             end
-            Stacker.logger.info formatted_time stack_name, 'updated', time
           else
-            Stacker.logger.warn 'Update skipped'
-          end
-        else
-          if yes? "#{stack.name} does not exist. Create it (y/n)?"
-            time = Benchmark.realtime do
-              stack.create
+            if yes? "#{stack.name} does not exist. Create it (y/n)?"
+              time = Benchmark.realtime do
+                stack.create
+              end
+              Stacker.logger.info formatted_time stack_name, 'created', time
+            else
+              Stacker.logger.warn 'Create skipped'
             end
-            Stacker.logger.info formatted_time stack_name, 'created', time
-          else
-            Stacker.logger.warn 'Create skipped'
           end
+        rescue Aws::CloudFormation::Errors::ValidationError,
+               Stacker::Stack::Error => err
+          Stacker.logger.error err.message
         end
       end
     end
@@ -102,18 +122,6 @@ module Stacker
           else
             Stacker.logger.warn 'Pull skipped'
           end
-        else
-          Stacker.logger.warn "#{stack.name} does not exist"
-        end
-      end
-    end
-
-    desc "fmt [STACK_NAME]", "Re-format template JSON"
-    def fmt stack_name = nil
-      with_one_or_all(stack_name) do |stack|
-        if stack.template.exists?
-          Stacker.logger.warn 'Formatting...'
-          stack.template.write
         else
           Stacker.logger.warn "#{stack.name} does not exist"
         end
@@ -162,12 +170,13 @@ YAML
       Stacker.logger.info "\n#{templ_diff.indent}\n" if templ_diff.length > 0
       Stacker.logger.info "\n#{param_diff.indent}\n" if param_diff.length > 0
 
+      Stacker.logger.info stack.pretty_change_set
       true
     end
 
     def region
       @region ||= begin
-        config_path =  File.join working_path, 'regions', "#{options['region']}.yml"
+        config_path =  region_config_path
         if File.exists? config_path
           begin
             config = YAML.load_file(config_path)
@@ -178,13 +187,43 @@ YAML
 
           defaults = config.fetch 'defaults', {}
           stacks = config.fetch 'stacks', {}
+          region_options = {
+            stack_prefix: environment_config.fetch('prefix', '')
+          }
 
-          Region.new options['region'], defaults, stacks, templates_path
+          Region.new options['region'], defaults, stacks, templates_path,
+                     region_options
         else
           Stacker.logger.fatal "#{options['region']}.yml does not exist. Please configure or use stacker init"
           exit 1
         end
       end
+    end
+
+    def region_config_path
+      region_path = if environments?
+        File.join working_path, 'environments', options['environment']
+      else
+        File.join working_path, 'regions'
+      end
+      File.join region_path, "#{options['region']}.yml"
+    end
+
+    def environments_path
+      File.join working_path, 'environments'
+    end
+
+    def environments?
+      File.exists? environments_path
+    end
+
+    def environment_config
+      config_path = File.join environments_path, 'config.yml'
+      return {} unless File.exists? config_path
+      YAML.load_file(config_path).fetch('environments', {}).fetch(
+        options['environment'],
+        {}
+      )
     end
 
     def resolve stack

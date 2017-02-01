@@ -6,7 +6,8 @@ module Stacker
     class StackOutputResolver < Resolver
 
       def resolve
-        stack = region.stack ref.fetch('Stack')
+        prefix = region.options.fetch(:stack_prefix, '')
+        stack = region.stack "#{prefix}#{ref.fetch('Stack')}"
         stack.outputs.fetch ref.fetch('Output')
       end
 

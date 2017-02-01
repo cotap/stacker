@@ -1,0 +1,159 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+
+  "Description": "Creates a VPC and an InternetGateway.",
+
+  "Parameters": {
+    "CidrBlock": {
+      "Description": "The Block of IP for this VPC. (10.1 or 10.10 or 10.128 etc.)",
+      "Type": "String"
+    },
+    "Name": {
+      "Description": "A name with which to tag this VPC",
+      "Type": "String"
+    }
+  },
+
+  "Resources": {
+
+    "VPC": {
+      "Type": "AWS::EC2::VPC",
+      "Properties": {
+	"EnableDnsSupport": true,
+	"EnableDnsHostnames": true,
+	"CidrBlock": {
+	  "Fn::Join": ["", [{
+	    "Ref": "CidrBlock"
+	  }, ".0.0/16"]]
+	},
+	"Tags": [{
+	  "Key": "Name",
+	  "Value": { "Ref": "Name" }
+	}]
+      }
+    },
+
+    "InternetGateway": {
+      "Type": "AWS::EC2::InternetGateway",
+      "Properties": {
+	"Tags": [{
+	  "Key": "Application",
+	  "Value": {
+	    "Ref": "AWS::StackId"
+	  }
+	}]
+      }
+    },
+
+    "AttachGateway": {
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+      "Properties": {
+	"VpcId": {
+	  "Ref": "VPC"
+	},
+	"InternetGatewayId": {
+	  "Ref": "InternetGateway"
+	}
+      }
+    },
+
+    "PublicRouteTable": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+	"VpcId": {
+	  "Ref": "VPC"
+	},
+	"Tags": [{
+	  "Key": "Application",
+	  "Value": {
+	    "Ref": "AWS::StackName"
+	  }
+	}, {
+	  "Key": "Network",
+	  "Value": "Public"
+	}, {
+	  "Key": "Name",
+	  "Value": {
+	    "Fn::Join": [" ", ["Public Route Table:", {
+	      "Ref": "AWS::StackName"
+	    }]]
+	  }
+	}]
+      }
+    },
+
+    "NATSecurityGroup" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "GroupDescription" : "Enable internal access to the NAT instance",
+        "VpcId" : { "Ref" : "VPC" },
+        "SecurityGroupIngress" : [
+           { "IpProtocol" : "tcp", "FromPort" : "80",  "ToPort" : "80",  "CidrIp" : "0.0.0.0/0" },
+           { "IpProtocol" : "tcp", "FromPort" : "443", "ToPort" : "443", "CidrIp" : "0.0.0.0/0" },
+           { "IpProtocol" : "tcp", "FromPort" : "22", "ToPort" : "22",
+	     "CidrIp" : { "Fn::Join": ["", [{ "Ref": "CidrBlock" }, ".0.0/16"]] } }
+        ],
+        "SecurityGroupEgress" : [
+           { "IpProtocol" : "udp", "FromPort" : "123", "ToPort" : "123", "CidrIp" : "0.0.0.0/0"},
+          { "IpProtocol" : "tcp", "FromPort" : "80", "ToPort" : "80", "CidrIp" : "0.0.0.0/0" },
+           { "IpProtocol" : "tcp", "FromPort" : "443", "ToPort" : "443", "CidrIp" : "0.0.0.0/0" }
+        ]
+      }
+    },
+
+    "PrivateSubnetSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+	"GroupDescription": "Security group for instances in the private subnet",
+	"VpcId": {
+	  "Ref": "VPC"
+	},
+	"SecurityGroupIngress": [{
+	  "IpProtocol": "-1",
+	  "FromPort": "0",
+	  "ToPort": "65535",
+	  "CidrIp": "0.0.0.0/0"
+	}],
+	"SecurityGroupEgress": [{
+	  "IpProtocol": "-1",
+	  "FromPort": "0",
+	  "ToPort": "65535",
+	  "CidrIp": "0.0.0.0/0"
+	}, {
+	  "IpProtocol": "udp",
+	  "FromPort": "123",
+	  "ToPort": "123",
+	  "CidrIp": "0.0.0.0/0"
+	}]
+      }
+    }
+
+  },
+
+  "Outputs": {
+    "PrivateSubnetSecurityGroup": {
+      "Description": "Private subnet SG",
+      "Value": { "Ref": "PrivateSubnetSecurityGroup" }
+    },
+
+    "VpcId": {
+      "Description": "VpcId of the VPC",
+      "Value": { "Ref": "VPC" }
+    },
+
+    "InternetGateway": {
+      "Description": "Internet Gateway",
+      "Value": { "Ref": "InternetGateway" }
+    },
+
+    "PublicRouteTable": {
+      "Description": "Public Route Table",
+      "Value": { "Ref": "PublicRouteTable" }
+    },
+
+    "NATSecurityGroup": {
+      "Description": "NAT Instance Security Group",
+      "Value": { "Ref": "NATSecurityGroup" }
+    }
+  }
+}
