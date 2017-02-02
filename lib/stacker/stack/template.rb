@@ -27,9 +27,9 @@ module Stacker
         raise TemplateDoesNotExistError.new name unless exists?
         @local ||= begin
           template = if json?
-            JSON.parse File.read path
+            JSON.parse local_raw
           else
-            YAML.load File.read path
+            YAML.load local_raw
           end
           template['AWSTemplateFormatVersion'] ||= FORMAT_VERSION
           template
