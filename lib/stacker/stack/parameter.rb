@@ -63,6 +63,10 @@ module Stacker
         end
       end
 
+      def ==(parameter)
+        parameter.value == value && parameter.region == region
+      end
+
       private
 
       def stack_output?

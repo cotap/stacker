@@ -30,6 +30,9 @@ Gem::Specification.new do |s|
   s.add_dependency 'thor', '~> 0.18'
   s.add_dependency 'yamllint', '~> 0.0.9'
 
+  s.add_development_dependency 'pry'
   s.add_development_dependency 'rake', '~> 10.4'
+  s.add_development_dependency 'rspec', '~> 3.0'
+  s.add_development_dependency 'rspec-its'
   s.add_development_dependency 'rspec-expectations', '~> 3.5'
 end
