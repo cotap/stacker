@@ -96,3 +96,32 @@ module Stacker
     end
   end
 end
+
+module Stacker
+  class Stack
+    class Parameter
+      class UsePreviousValue
+        def to_yaml_type
+          'UsePreviousValue'
+        end
+
+        def encode_with coder
+        end
+
+        def init_with coder
+          initialize
+        end
+
+        def to_string_representation
+          '!<UsePreviousValue>'
+        end
+
+        def self.from_string_representation
+          UsePreviousValue.new
+        end
+      end
+
+      YAML.add_tag 'UsePreviousValue', UsePreviousValue
+    end
+  end
+end

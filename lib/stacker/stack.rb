@@ -229,10 +229,17 @@ JSON
           stack_name: name,
           template_body: template.local_raw,
           parameters: parameters.resolved.map do |k, v|
-            {
-              parameter_key: k,
-              parameter_value: v
-            }
+            if v.is_a? Stacker::Stack::Parameter::UsePreviousValue
+              {
+                parameter_key: k,
+                use_previous_value: true
+              }
+            else
+              {
+                parameter_key: k,
+                parameter_value: v
+              }
+            end
           end,
           capabilities: capabilities.local,
           change_set_name: csname
