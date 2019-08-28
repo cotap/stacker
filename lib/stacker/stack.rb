@@ -182,7 +182,7 @@ JSON
         if changes.empty?
           raise CannotDescribeChangeSet.new 'Empty change set' if retries == 0
           retries -= 1
-          sleep 1
+          sleep (1 * (6 - retries) * 3)
         end
       end
       changes.map do |c|
